@@ -16,6 +16,9 @@ const NonceSize = 24
 // KeySize lengtho of crypto key
 const KeySize = 32
 
+// Key is a crypto key
+type Key *[KeySize]byte
+
 // ErrInvalidCryptoKey invalid crypto key
 var ErrInvalidCryptoKey = _log.NewError(100, "crypto", "invalid crypto key length")
 
@@ -31,7 +34,7 @@ func GenerateCryptoKeys() (*[KeySize]byte, *[KeySize]byte, error) {
 }
 
 // CryptoKeyFromBase64 get crypto key from base64 string
-func CryptoKeyFromBase64(key64 string) (*[KeySize]byte, error) {
+func CryptoKeyFromBase64(key64 string) (Key, error) {
 	buf, err := base64.StdEncoding.DecodeString(key64)
 	if _log.Check(err) {
 		return nil, err
@@ -44,9 +47,14 @@ func CryptoKeyFromBase64(key64 string) (*[KeySize]byte, error) {
 	return &key, nil
 }
 
+// CryptoKeyToBase64 converts a crypto key to base64
+func CryptoKeyToBase64(key *[KeySize]byte) string {
+	return base64.StdEncoding.EncodeToString(key[:])
+}
+
 // SealBytes encrypts/signs buffer with a public key of recipient and private key
 // of the sender
-func SealBytes(buf []byte, public, private *[KeySize]byte) ([]byte, error) {
+func SealBytes(buf []byte, public, private Key) ([]byte, error) {
 	var nonce [NonceSize]byte
 	io.ReadFull(rand.Reader, nonce[:])
 	return box.Seal(nonce[:], buf, &nonce, public, private), nil
@@ -54,7 +62,7 @@ func SealBytes(buf []byte, public, private *[KeySize]byte) ([]byte, error) {
 
 // OpenSealedBytes - decrypts bytes with public key of the sender and
 // private key of the recipient
-func OpenSealedBytes(buf []byte, public, private *[KeySize]byte) ([]byte, error) {
+func OpenSealedBytes(buf []byte, public, private Key) ([]byte, error) {
 	var nonce [NonceSize]byte
 	_log.Assert(len(buf) >= len(nonce))
 	copy(nonce[:], buf[:NonceSize])
@@ -66,7 +74,7 @@ func OpenSealedBytes(buf []byte, public, private *[KeySize]byte) ([]byte, error)
 }
 
 // EncryptBytes used to just encrypt bytes with a random key
-func EncryptBytes(in []byte, key *[KeySize]byte) ([]byte, error) {
+func EncryptBytes(in []byte, key Key) ([]byte, error) {
 	var nonce [NonceSize]byte
 	io.ReadFull(rand.Reader, nonce[:])
 	out := make([]byte, NonceSize)
@@ -75,7 +83,7 @@ func EncryptBytes(in []byte, key *[KeySize]byte) ([]byte, error) {
 }
 
 // DecryptBytes used to decrypt bytes with a key used in EncryptBytes
-func DecryptBytes(in []byte, key *[KeySize]byte) ([]byte, error) {
+func DecryptBytes(in []byte, key Key) ([]byte, error) {
 	var nonce [NonceSize]byte
 	_log.Assert(len(in) >= NonceSize)
 	copy(nonce[:], in[:NonceSize])
