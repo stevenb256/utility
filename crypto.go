@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"io"
 
-	_log "github.com/stevenb256/log"
+	_l "github.com/stevenb256/log"
 	"golang.org/x/crypto/nacl/box"
 	"golang.org/x/crypto/nacl/secretbox"
 )
@@ -20,13 +20,13 @@ const KeySize = 32
 type Key *[KeySize]byte
 
 // ErrInvalidCryptoKey invalid crypto key
-var ErrInvalidCryptoKey = _log.NewError(100, "crypto", "invalid crypto key length")
+var ErrInvalidCryptoKey = _l.NewError(100, "crypto", "invalid crypto key length")
 
 // ErrCantOpenSealedBytes can't open sealed bytes; crypto problem
-var ErrCantOpenSealedBytes = _log.NewError(101, "crypto", "unable to open/unseal bytes")
+var ErrCantOpenSealedBytes = _l.NewError(101, "crypto", "unable to open/unseal bytes")
 
 // ErrCantDecryptBytes can't decrypt bytes encrypted in other function
-var ErrCantDecryptBytes = _log.NewError(102, "crypto", "unable to decrypt bytes")
+var ErrCantDecryptBytes = _l.NewError(102, "crypto", "unable to decrypt bytes")
 
 // GenerateCryptoKeys returns public, private keys or error
 func GenerateCryptoKeys() (*[KeySize]byte, *[KeySize]byte, error) {
@@ -36,11 +36,11 @@ func GenerateCryptoKeys() (*[KeySize]byte, *[KeySize]byte, error) {
 // CryptoKeyFromBase64 get crypto key from base64 string
 func CryptoKeyFromBase64(key64 string) (Key, error) {
 	buf, err := base64.StdEncoding.DecodeString(key64)
-	if _log.Check(err) {
+	if _l.Check(err) {
 		return nil, err
 	}
 	if len(buf) != KeySize {
-		return nil, _log.Fail(ErrInvalidCryptoKey, key64)
+		return nil, _l.Fail(ErrInvalidCryptoKey, key64)
 	}
 	var key [KeySize]byte
 	copy((key)[:], buf)
@@ -63,13 +63,31 @@ func SealBytes(buf []byte, public, private Key) ([]byte, error) {
 // OpenSealedBytes - decrypts bytes with public key of the sender and
 // private key of the recipient
 func OpenSealedBytes(buf []byte, public, private Key) ([]byte, error) {
+
+	// locals
 	var nonce [NonceSize]byte
-	_log.Assert(len(buf) >= len(nonce))
+
+	// check args
+	if nil == public {
+		return nil, _l.Fail(_l.ErrInvalidArg, "nil public key")
+	}
+	if nil == private {
+		return nil, _l.Fail(_l.ErrInvalidArg, "nil private key")
+	}
+	if len(buf) < len(nonce) {
+		return nil, _l.Fail(_l.ErrInvalidArg, "sealed buffer smaller than nonce")
+	}
+
+	// copy over nonce
 	copy(nonce[:], buf[:NonceSize])
+
+	// open it
 	clear, b := box.Open(nil, buf[NonceSize:], &nonce, public, private)
 	if false == b {
-		return nil, _log.Fail(ErrCantOpenSealedBytes)
+		return nil, _l.Fail(ErrCantOpenSealedBytes)
 	}
+
+	// done
 	return clear, nil
 }
 
@@ -85,11 +103,11 @@ func EncryptBytes(in []byte, key Key) ([]byte, error) {
 // DecryptBytes used to decrypt bytes with a key used in EncryptBytes
 func DecryptBytes(in []byte, key Key) ([]byte, error) {
 	var nonce [NonceSize]byte
-	_log.Assert(len(in) >= NonceSize)
+	_l.Assert(len(in) >= NonceSize)
 	copy(nonce[:], in[:NonceSize])
 	out, worked := secretbox.Open(nil, in[NonceSize:], &nonce, key)
 	if false == worked {
-		return nil, _log.Fail(ErrCantDecryptBytes)
+		return nil, _l.Fail(ErrCantDecryptBytes)
 	}
 	return out, nil
 }
