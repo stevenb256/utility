@@ -11,16 +11,16 @@ func md5Bytes(buf []byte) string {
 	return base64.StdEncoding.EncodeToString(h[:])
 }
 
-// MinUint32 min of two uint32
-func MinUint32(x, y uint32) uint32 {
+// MinUint16 min of two uint16
+func MinUint16(x, y uint16) uint16 {
 	if x < y {
 		return x
 	}
 	return y
 }
 
-// MaxUint32 Max of two uint32
-func MaxUint32(x, y uint32) uint32 {
+// MaxUint16 Max of two uint32
+func MaxUint16(x, y uint16) uint16 {
 	if x > y {
 		return x
 	}
