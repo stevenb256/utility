@@ -28,6 +28,21 @@ var ErrCantOpenSealedBytes = _l.NewError(101, "crypto", "unable to open/unseal b
 // ErrCantDecryptBytes can't decrypt bytes encrypted in other function
 var ErrCantDecryptBytes = _l.NewError(102, "crypto", "unable to decrypt bytes")
 
+// NewKey - returns new crypto key from a buffer
+func NewKey(buf []byte) Key {
+	if len(buf) != KeySize {
+		return nil
+	}
+	key := new([KeySize]byte)
+	copy(key[:], buf[:KeySize])
+	return key
+}
+
+// KeyToBase64 - converts key to base64 encoding
+func KeyToBase64(key Key) string {
+	return base64.StdEncoding.EncodeToString(key[:])
+}
+
 // GenerateCryptoKeys returns public, private keys or error
 func GenerateCryptoKeys() (*[KeySize]byte, *[KeySize]byte, error) {
 	return box.GenerateKey(rand.Reader)
