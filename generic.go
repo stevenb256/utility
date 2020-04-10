@@ -26,3 +26,11 @@ func MaxUint16(x, y uint16) uint16 {
 	}
 	return y
 }
+
+// SendError - send error over channel if not nil
+func SendError(chError chan error, err error) error {
+	if nil != chError {
+		chError <- err
+	}
+	return err
+}
