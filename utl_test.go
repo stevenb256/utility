@@ -1,4 +1,4 @@
-package utility
+package utl
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 func TestBuild(t *testing.T) {
 
 	// start log
-	err := l.StartLog("", "1.0", true, nil)
+	err := l.StartLog("", "1.0", true)
 	if nil != err {
 		panic(err.Error())
 	}
