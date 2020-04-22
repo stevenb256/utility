@@ -3,6 +3,7 @@ package utl
 import (
 	"crypto/md5"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -175,4 +176,72 @@ func Clone(inter interface{}) interface{} {
 		}
 	}
 	return nInter.Interface()
+}
+
+// WriteFile writes buffer into path
+func WriteFile(path string, buffer []byte) error {
+
+	// make sure directory exists
+	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	if l.Check(err) {
+		return err
+	}
+
+	// create/lock the local file
+	file, err := os.Create(path)
+	if l.Check(err) {
+		return err
+	}
+	defer file.Close()
+
+	// write the contents
+	_, err = file.Write(buffer)
+	if l.Check(err) {
+		return err
+	}
+
+	// truncate the file
+	err = file.Truncate(int64(len(buffer)))
+	if l.Check(err) {
+		return err
+	}
+
+	// set the size
+	return nil
+}
+
+// LaunchURL -- launches the browser to a url
+func LaunchURL(home, url string) error {
+
+	// path
+	path := Join(home, "open.url")
+
+	// write to a file that we can launch
+	err := WriteFile(path, []byte(fmt.Sprintf("[InternetShortcut]\nURL=%s", url)))
+	if l.Check(err) {
+		return err
+	}
+
+	// setup command and launch url to do auth flow
+	var verb, file string
+	if runtime.GOOS == "windows" {
+		verb = "cmd"
+		file = "/c start " + path
+	} else if runtime.GOOS == "darwin" {
+		verb = "open"
+		file = path
+	} else if runtime.GOOS == "linux" {
+		verb = "xdg-open"
+		file = path
+	}
+
+	// launch command
+	command := exec.Command(verb, file) // TODO: on windows use start, xdg-open on linux
+	err = command.Run()
+	if l.Check(err) {
+		return err
+	}
+
+	// done
+	return nil
 }
