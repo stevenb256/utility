@@ -5,11 +5,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 
 	l "github.com/stevenb256/log"
 )
@@ -239,6 +242,43 @@ func LaunchURL(home, url string) error {
 	command := exec.Command(verb, file) // TODO: on windows use start, xdg-open on linux
 	err = command.Run()
 	if l.Check(err) {
+		return err
+	}
+
+	// done
+	return nil
+}
+
+// MakeURL - makes a url with arguments and escaping
+func MakeURL(base, page string, args ...string) string {
+	s := new(strings.Builder)
+	fmt.Fprintf(s, "%s/%s", base, page)
+	sep := "?"
+	for i := 0; i < len(args); i += 2 {
+		fmt.Fprintf(s, "%s%s=%s", sep, args[i], url.PathEscape(args[i+1]))
+		sep = "&"
+	}
+	return s.String()
+}
+
+// HTTPGet - simple http get
+func HTTPGet(base, page string, args ...string) error {
+
+	// make url
+	s := MakeURL(base, page, args...)
+
+	// try to ping and get a response
+	r, err := http.Get(s)
+	if l.Check(err) {
+		return err
+	}
+
+	// if not a 200
+	if 200 != r.StatusCode {
+		//b, _ := ioutil.ReadAll(r.Body)
+		//l.Debug(string(b))
+		err = fmt.Errorf("failed(status:%d) - %s", r.StatusCode, s)
+		l.Fail(err)
 		return err
 	}
 
