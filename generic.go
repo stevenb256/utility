@@ -261,8 +261,8 @@ func MakeURL(base, page string, args ...string) string {
 	return s.String()
 }
 
-// HTTPGet - simple http get
-func HTTPGet(base, page string, args ...string) error {
+// Get - simple http get
+func Get(base, page string, args ...string) error {
 
 	// make url
 	s := MakeURL(base, page, args...)
