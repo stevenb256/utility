@@ -255,7 +255,7 @@ func MakeURL(base, page string, args ...string) string {
 	fmt.Fprintf(s, "%s/%s", base, page)
 	sep := "?"
 	for i := 0; i < len(args); i += 2 {
-		fmt.Fprintf(s, "%s%s=%s", sep, args[i], url.PathEscape(args[i+1]))
+		fmt.Fprintf(s, "%s%s=%s", sep, args[i], url.QueryEscape(args[i+1]))
 		sep = "&"
 	}
 	return s.String()
@@ -266,6 +266,8 @@ func Get(base, page string, args ...string) error {
 
 	// make url
 	s := MakeURL(base, page, args...)
+
+	l.Debug(s)
 
 	// try to ping and get a response
 	r, err := http.Get(s)
