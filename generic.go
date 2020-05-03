@@ -1,10 +1,13 @@
 package utl
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -264,24 +267,77 @@ func MakeURL(base, page string, args ...string) string {
 // Get - simple http get
 func Get(base, page string, args ...string) error {
 
-	// make url
-	s := MakeURL(base, page, args...)
-
-	l.Debug(s)
-
 	// try to ping and get a response
+	s := MakeURL(base, page, args...)
 	r, err := http.Get(s)
 	if l.Check(err) {
 		return err
 	}
+	defer r.Body.Close()
 
-	// if not a 200
-	if 200 != r.StatusCode {
-		//b, _ := ioutil.ReadAll(r.Body)
-		//l.Debug(string(b))
-		err = fmt.Errorf("failed(status:%d) - %s", r.StatusCode, s)
-		l.Fail(err)
+	// if not status ok
+	if http.StatusOK != r.StatusCode {
+		return fmt.Errorf("failed(status:%d) - %s", r.StatusCode, s)
+	}
+
+	// done
+	return nil
+}
+
+// Post a file to a http endpoint
+func Post(base, page string, path string) error {
+
+	// make uri
+	uri := MakeURL(base, page)
+
+	// read the file
+	fileContents, err := ioutil.ReadFile(path)
+	if l.Check(err) {
 		return err
+	}
+
+	// make buffer and writer
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+
+	// add part from file
+	part, err := writer.CreateFormFile("file", filepath.Base(path))
+	if l.Check(err) {
+		return err
+	}
+
+	// write the file
+	_, err = part.Write(fileContents)
+	if l.Check(err) {
+		return err
+	}
+
+	// close the writer
+	err = writer.Close()
+	if l.Check(err) {
+		return err
+	}
+
+	// Now that you have a form, you can submit it to your handler.
+	request, err := http.NewRequest("POST", uri, body)
+	if l.Check(err) {
+		return err
+	}
+
+	// Don't forget to set the content type, this will contain the boundary.
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+
+	// do the request
+	client := &http.Client{}
+	r, err := client.Do(request)
+	if l.Check(err) {
+		return err
+	}
+	defer r.Body.Close()
+
+	// if not status ok
+	if http.StatusOK != r.StatusCode {
+		return fmt.Errorf("failed(status:%d) - %s", r.StatusCode, uri)
 	}
 
 	// done
