@@ -255,7 +255,7 @@ func LaunchURL(home, url string) error {
 // MakeURL - makes a url with arguments and escaping
 func MakeURL(base, page string, args ...string) string {
 	s := new(strings.Builder)
-	fmt.Fprintf(s, "%s/%s", base, page)
+	fmt.Fprintf(s, "%s%s", base, page)
 	sep := "?"
 	for i := 0; i < len(args); i += 2 {
 		fmt.Fprintf(s, "%s%s=%s", sep, args[i], url.QueryEscape(args[i+1]))
