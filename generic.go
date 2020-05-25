@@ -19,6 +19,14 @@ import (
 	l "github.com/stevenb256/log"
 )
 
+// Percent computes percent value
+func Percent(v1, v2 int) int {
+	if 0 == v2 {
+		return 0
+	}
+	return int((float64(v1) / float64(v2)) * float64(100))
+}
+
 // md5Bytes returns md5 hash of bytes
 func md5Bytes(buf []byte) string {
 	h := md5.Sum(buf)
@@ -270,10 +278,10 @@ func Get(base, page string, args ...string) error {
 }
 
 // Post a file to a http endpoint
-func Post(base, page string, path string) error {
+func Post(base, page string, path string, args ...string) error {
 
 	// make uri
-	uri := MakeURL(base, page)
+	uri := MakeURL(base, page, args...)
 
 	// read the file
 	fileContents, err := ioutil.ReadFile(path)
