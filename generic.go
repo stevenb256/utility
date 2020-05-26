@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -27,10 +28,17 @@ func Percent(v1, v2 int) int {
 	return int((float64(v1) / float64(v2)) * float64(100))
 }
 
-// md5Bytes returns md5 hash of bytes
-func md5Bytes(buf []byte) string {
+// HashBytes returns md5 hash of bytes
+func HashBytes(buf []byte) string {
 	h := md5.Sum(buf)
 	return base64.StdEncoding.EncodeToString(h[:])
+}
+
+// HashString - gets a hash of a string
+func HashString(s string) string {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return fmt.Sprintf("%X", h.Sum32())
 }
 
 // MinUint16 min of two uint16
@@ -277,8 +285,48 @@ func Get(base, page string, args ...string) error {
 	return nil
 }
 
-// Post a file to a http endpoint
-func Post(base, page string, path string, args ...string) error {
+// PostForm a file to a http endpoint
+func PostForm(base, page string, formValues []string, args ...string) error {
+
+	// make uri
+	uri := MakeURL(base, page, args...)
+
+	// set form values
+	form := url.Values{}
+	for i := 0; i < len(formValues); i += 2 {
+		form.Add(formValues[i], formValues[i+1])
+	}
+
+	// Now that you have a form, you can submit it to your handler.
+	request, err := http.NewRequest("POST", uri, strings.NewReader(form.Encode()))
+	if l.Check(err) {
+		return err
+	}
+
+	// set header
+	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	request.PostForm = form
+
+	// do the request
+	client := &http.Client{}
+	r, err := client.Do(request)
+	if l.Check(err) {
+		return err
+	}
+	defer r.Body.Close()
+
+	// if not status ok
+	if http.StatusOK != r.StatusCode {
+		return fmt.Errorf("failed(status:%d) - %s", r.StatusCode, uri)
+	}
+
+	// done
+	return nil
+
+}
+
+// PostFile a file to a http endpoint
+func PostFile(base, page string, path string, args ...string) error {
 
 	// make uri
 	uri := MakeURL(base, page, args...)
