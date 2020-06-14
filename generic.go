@@ -1,24 +1,46 @@
 package utl
 
 import (
-	"bytes"
 	"crypto/md5"
 	"encoding/base64"
 	"fmt"
 	"hash/fnv"
 	"io"
-	"io/ioutil"
-	"mime/multipart"
-	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
+	"strconv"
 
 	l "github.com/stevenb256/log"
 )
+
+// AreStringSliceSame returns true if string slices are the same
+func AreStringSliceSame(s1, s2 []string) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+	for i, a1 := range s1 {
+		if s2[i] != a1 {
+			return false
+		}
+	}
+	return true
+}
+
+// Itoa converts int to string
+func Itoa(i int) string {
+	return fmt.Sprintf("%d", i)
+}
+
+// Atoi - atoi that doesn't fail and instead returns 0
+func Atoi(s string) int {
+	i, err := strconv.Atoi(s)
+	if l.Check(err) {
+		return -1
+	}
+	return i
+}
 
 // Percent computes percent value
 func Percent(v1, v2 int) int {
@@ -214,173 +236,5 @@ func WriteFile(path string, buffer []byte) error {
 	}
 
 	// set the size
-	return nil
-}
-
-// LaunchURL -- launches the browser to a url
-func LaunchURL(home, url string) error {
-
-	// path
-	path := Join(home, "open.url")
-
-	// write to a file that we can launch
-	err := WriteFile(path, []byte(fmt.Sprintf("[InternetShortcut]\nURL=%s", url)))
-	if l.Check(err) {
-		return err
-	}
-
-	// setup command and launch url to do auth flow
-	var verb, file string
-	if runtime.GOOS == "windows" {
-		verb = "cmd"
-		file = "/c start " + path
-	} else if runtime.GOOS == "darwin" {
-		verb = "open"
-		file = path
-	} else if runtime.GOOS == "linux" {
-		verb = "xdg-open"
-		file = path
-	}
-
-	// launch command
-	command := exec.Command(verb, file) // TODO: on windows use start, xdg-open on linux
-	err = command.Run()
-	if l.Check(err) {
-		return err
-	}
-
-	// done
-	return nil
-}
-
-// MakeURL - makes a url with arguments and escaping
-func MakeURL(base, page string, args ...string) string {
-	s := new(strings.Builder)
-	fmt.Fprintf(s, "%s%s", base, page)
-	sep := "?"
-	for i := 0; i < len(args); i += 2 {
-		fmt.Fprintf(s, "%s%s=%s", sep, args[i], url.QueryEscape(args[i+1]))
-		sep = "&"
-	}
-	return s.String()
-}
-
-// Get - simple http get
-func Get(base, page string, args ...string) error {
-
-	// try to ping and get a response
-	s := MakeURL(base, page, args...)
-	r, err := http.Get(s)
-	if l.Check(err) {
-		return err
-	}
-	defer r.Body.Close()
-
-	// if not status ok
-	if http.StatusOK != r.StatusCode {
-		return fmt.Errorf("failed(status:%d) - %s", r.StatusCode, s)
-	}
-
-	// done
-	return nil
-}
-
-// PostForm a file to a http endpoint
-func PostForm(base, page string, formValues []string, args ...string) error {
-
-	// make uri
-	uri := MakeURL(base, page, args...)
-
-	// set form values
-	form := url.Values{}
-	for i := 0; i < len(formValues); i += 2 {
-		form.Add(formValues[i], formValues[i+1])
-	}
-
-	// Now that you have a form, you can submit it to your handler.
-	request, err := http.NewRequest("POST", uri, strings.NewReader(form.Encode()))
-	if l.Check(err) {
-		return err
-	}
-
-	// set header
-	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	request.PostForm = form
-
-	// do the request
-	client := &http.Client{}
-	r, err := client.Do(request)
-	if l.Check(err) {
-		return err
-	}
-	defer r.Body.Close()
-
-	// if not status ok
-	if http.StatusOK != r.StatusCode {
-		return fmt.Errorf("failed(status:%d) - %s", r.StatusCode, uri)
-	}
-
-	// done
-	return nil
-
-}
-
-// PostFile a file to a http endpoint
-func PostFile(base, page string, path string, args ...string) error {
-
-	// make uri
-	uri := MakeURL(base, page, args...)
-
-	// read the file
-	fileContents, err := ioutil.ReadFile(path)
-	if l.Check(err) {
-		return err
-	}
-
-	// make buffer and writer
-	body := new(bytes.Buffer)
-	writer := multipart.NewWriter(body)
-
-	// add part from file
-	part, err := writer.CreateFormFile("file", filepath.Base(path))
-	if l.Check(err) {
-		return err
-	}
-
-	// write the file
-	_, err = part.Write(fileContents)
-	if l.Check(err) {
-		return err
-	}
-
-	// close the writer
-	err = writer.Close()
-	if l.Check(err) {
-		return err
-	}
-
-	// Now that you have a form, you can submit it to your handler.
-	request, err := http.NewRequest("POST", uri, body)
-	if l.Check(err) {
-		return err
-	}
-
-	// Don't forget to set the content type, this will contain the boundary.
-	request.Header.Set("Content-Type", writer.FormDataContentType())
-
-	// do the request
-	client := &http.Client{}
-	r, err := client.Do(request)
-	if l.Check(err) {
-		return err
-	}
-	defer r.Body.Close()
-
-	// if not status ok
-	if http.StatusOK != r.StatusCode {
-		return fmt.Errorf("failed(status:%d) - %s", r.StatusCode, uri)
-	}
-
-	// done
 	return nil
 }
