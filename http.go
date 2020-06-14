@@ -54,26 +54,23 @@ func LaunchURL(home, url string) error {
 	return nil
 }
 
-// MakeURL - makes a url with arguments and escaping
-func MakeURL(base, page string, args ...string) string {
-	s := new(strings.Builder)
-	fmt.Fprintf(s, "%s%s", base, page)
-	sep := "?"
-	for i := 0; i < len(args); i += 2 {
-		fmt.Fprintf(s, "%s%s=%s", sep, args[i], url.QueryEscape(args[i+1]))
-		sep = "&"
+// URL - makes a url with arguments and escaping
+func URL(scheme, host, path string, args ...string) string {
+	u := &url.URL{
+		Scheme: scheme,
+		Host:   host,
+		Path:   path,
 	}
-	return s.String()
+	q := u.Query()
+	for i := 0; i < len(args); i += 2 {
+		q.Add(args[i], args[i+1])
+	}
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // Get - simple http get
-func Get(
-	cookie *http.Cookie,
-	base, page string,
-	args ...string) error {
-
-	// try to ping and get a response
-	uri := MakeURL(base, page, args...)
+func Get(cookie *http.Cookie, uri string) error {
 
 	// Now that you have a form, you can submit it to your handler.
 	request, err := http.NewRequest("GET", uri, nil)
@@ -103,14 +100,7 @@ func Get(
 }
 
 // PostForm a file to a http endpoint
-func PostForm(
-	cookie *http.Cookie,
-	base, page string,
-	formValues []string,
-	args ...string) error {
-
-	// make uri
-	uri := MakeURL(base, page, args...)
+func PostForm(cookie *http.Cookie, uri string, formValues ...string) error {
 
 	// set form values
 	form := url.Values{}
@@ -150,14 +140,7 @@ func PostForm(
 }
 
 // PostFiles a file to a http endpoint
-func PostFiles(
-	cookie *http.Cookie,
-	base, page string,
-	files []string,
-	args ...string) error {
-
-	// make uri
-	uri := MakeURL(base, page, args...)
+func PostFiles(cookie *http.Cookie, uri string, files ...string) error {
 
 	// make buffer and writer
 	body := new(bytes.Buffer)
