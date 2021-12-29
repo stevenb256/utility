@@ -1,11 +1,14 @@
 package utl
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -44,7 +47,7 @@ func Atoi(s string) int {
 
 // Percent computes percent value
 func Percent(v1, v2 int) int {
-	if 0 == v2 {
+	if v2 == 0 {
 		return 0
 	}
 	return int((float64(v1) / float64(v2)) * float64(100))
@@ -104,7 +107,7 @@ func Execute(wait bool, dir, app string, args ...string) error {
 	command.Stderr = os.Stderr
 
 	// wait
-	if true == wait {
+	if wait {
 		err = command.Run()
 		if l.Check(err) {
 			return err
@@ -185,21 +188,10 @@ func CopyFile(srcPath, dstPath string) error {
 	return nil
 }
 
-// DoesFileExist - checks to see if file exists
-func DoesFileExist(filePath string) bool {
-	_, err := os.Stat(filePath)
-	return true != os.IsNotExist(err)
-}
-
 // IsDirectory - checks to see if path is a director or a file
 func IsDirectory(path string) bool {
 	stat, err := os.Stat(path)
-	return nil == err && true == stat.IsDir()
-}
-
-// Join - takes a set of strings and joins them into a path
-func Join(a ...string) string {
-	return filepath.Join(a...)
+	return nil == err && stat.IsDir()
 }
 
 // Clean - calls go filepath clean method
@@ -236,5 +228,48 @@ func WriteFile(path string, buffer []byte) error {
 	}
 
 	// set the size
+	return nil
+}
+
+// join
+func Join(path ...string) string {
+	s := filepath.Join(path...)
+	return filepath.Clean(s)
+}
+
+// check to see if a file exist
+func DoesFileExist(name string) bool {
+	_, err := os.Stat(name)
+	return !os.IsNotExist(err)
+}
+
+// used to read a json object form a file
+func LoadJSONObject(path string, object interface{}) error {
+	jsonText, err := ioutil.ReadFile(path)
+	if nil != err {
+		return l.Fail(err)
+	}
+	err = json.Unmarshal(jsonText, object)
+	if nil != err {
+		return l.Fail(err)
+	}
+	return nil
+}
+
+// used to write a json object form a file
+func SaveJSONObject(path string, object interface{}) error {
+	var prettyJSON bytes.Buffer
+	data, err := json.Marshal(object)
+	if nil != err {
+		return l.Fail(err)
+	}
+	err = json.Indent(&prettyJSON, data, "", "\t")
+	if nil != err {
+		return l.Fail(err)
+	}
+	err = ioutil.WriteFile(path, prettyJSON.Bytes(), os.ModePerm)
+	if nil != err {
+		return l.Fail(err)
+	}
 	return nil
 }

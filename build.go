@@ -21,7 +21,7 @@ var PlatformLinux = "linux"
 // WindowsEXE -
 
 // Build - builds a go directory for a specific platform
-func Build(path, platform string) error {
+func Build(path, platform string) (string, error) {
 
 	// locals
 	var err error
@@ -58,25 +58,28 @@ func Build(path, platform string) error {
 		os.Setenv("CXX", "/usr/local/gcc-4.8.1-for-linux64/bin/x86_64-pc-linux-g++")
 		extension = ".linux"
 	} else {
-		return errors.New("invalid platform")
+		return "", errors.New("invalid platform")
 	}
 
 	// find go exe path
 	goExe, err := exec.LookPath("go")
 	if l.Check(err) {
-		return err
+		return "", err
 	}
 
 	// run go install
 	err = Execute(true, path, goExe, "build", "-o", "gbexe", "-gcflags", "-trimpath="+path, "-asmflags", "-trimpath="+path)
 	if l.Check(err) {
-		return err
+		return "", err
 	}
 
+	// set filenName
+	fileName := filepath.Base(path) + extension
+
 	// copies the built file to the filename with right extension
-	err = MoveFile(Join(path, "gbexe"), Join(path, filepath.Base(path)+extension))
+	err = MoveFile(Join(path, "gbexe"), Join(path, fileName))
 	if l.Check(err) {
-		return err
+		return "", err
 	}
 
 	// restore environment
@@ -87,5 +90,5 @@ func Build(path, platform string) error {
 	os.Setenv("GOBIN", oldGOBIN)
 
 	// done
-	return nil
+	return fileName, nil
 }

@@ -24,10 +24,7 @@ func GetNonPtrType(o interface{}) reflect.Type {
 
 // IsSlice - returns true if o is a slice or o is ptr to slice
 func IsSlice(o interface{}) bool {
-	if reflect.Slice == GetNonPtrType(o).Kind() {
-		return true
-	}
-	return false
+	return reflect.Slice == GetNonPtrType(o).Kind()
 }
 
 // MakeSliceOfType - make a slice of type []o
@@ -94,7 +91,7 @@ func SetField(o interface{}, field string, value interface{}) {
 		s.Set(reflect.Zero(s.Type()))
 	} else {
 		v := reflect.ValueOf(o).Elem().FieldByName(field)
-		if false == v.IsValid() {
+		if !v.IsValid() {
 			l.Debug("field not found", field)
 			return
 		}
@@ -109,7 +106,7 @@ func Clone(inter interface{}) interface{} {
 	nVal := nInter.Elem()
 	for i := 0; i < val.NumField(); i++ {
 		nvField := nVal.Field(i)
-		if true == nvField.CanSet() {
+		if nvField.CanSet() {
 			nvField.Set(val.Field(i))
 		}
 	}

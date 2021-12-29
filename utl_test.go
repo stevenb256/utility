@@ -3,7 +3,6 @@ package utl
 import (
 	"reflect"
 	"testing"
-	"time"
 
 	l "github.com/stevenb256/log"
 )
@@ -13,7 +12,6 @@ type object struct {
 	S string
 	I int
 	F float64
-	t *time.Time
 }
 
 // TestBuild - tests building go code via code
@@ -57,31 +55,31 @@ func TestMain(t *testing.T) {
 	}
 
 	// get slice type
-	if "object" != GetTypeName(noSlice) {
+	if GetTypeName(noSlice) != "object" {
 		t.Errorf("type name is not correct")
 		return
 	}
 
 	// get slice type
-	if "object" != GetTypeName(&noSlice) {
+	if GetTypeName(&noSlice) != "object" {
 		t.Errorf("type name is not correct")
 		return
 	}
 
 	// get slice type
-	if "object" != GetTypeName(emptySlice) {
+	if GetTypeName(emptySlice) != "object" {
 		t.Errorf("type name is not correct")
 		return
 	}
 
 	// get object type
-	if "object" != GetTypeName(ptrOne) {
+	if GetTypeName(ptrOne) != "object" {
 		t.Errorf("type name is not correct")
 		return
 	}
 
 	// get object type
-	if "object" != GetTypeName(one) {
+	if GetTypeName(one) != "object" {
 		t.Errorf("type name is not correct")
 		return
 	}
@@ -90,7 +88,7 @@ func TestMain(t *testing.T) {
 	rawSlice := MakeSliceOfType(reflect.TypeOf(&object{}), 10)
 
 	// get object type
-	if "object" != GetTypeName(rawSlice.Interface()) {
+	if GetTypeName(rawSlice.Interface()) != "object" {
 		t.Errorf("type name is not correct")
 		return
 	}
@@ -111,19 +109,19 @@ func TestMain(t *testing.T) {
 	SetField(o, "F", 1234.56789)
 
 	// validate
-	if "foobar" != o.S {
+	if o.S != "foobar" {
 		t.Errorf("string not set right")
 		return
 	}
 
 	// validate
-	if 123456789 != o.I {
+	if o.I != 123456789 {
 		t.Errorf("int not set right")
 		return
 	}
 
 	// validate
-	if 1234.56789 != o.F {
+	if o.F != 1234.56789 {
 		t.Errorf("float not set right")
 		return
 	}

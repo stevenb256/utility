@@ -39,18 +39,20 @@ func OpenExcel(reader io.Reader, columns []string) (*Excel, error) {
 	}
 
 	// if no sheets
-	if 0 == len(file.Sheets) {
+	if len(file.Sheets) == 0 {
 		return nil, l.Fail(errors.New("no sheets in excel file"))
 	}
 
 	// get first sheet
 	excel.sheet = file.Sheets[0]
 
-	// get row
-	excel.row, err = excel.sheet.Row(0)
-	if l.Check(err) {
-		return nil, err
+	// if no rows
+	if len(excel.sheet.Rows) == 0 {
+		return nil, l.Fail(errors.New("no rows in sheet"))
 	}
+
+	// get row
+	excel.row = excel.sheet.Rows[0]
 
 	// if no rows
 	if nil == excel.row {
@@ -63,9 +65,11 @@ func OpenExcel(reader io.Reader, columns []string) (*Excel, error) {
 	// find columns
 	for _, name := range columns {
 		for i := 0; i < excel.row.Sheet.MaxCol; i++ {
-			if name == strings.ToLower(excel.row.GetCell(i).Value) {
-				excel.columns[name] = i
-				break
+			if i < len(excel.row.Cells) {
+				if name == strings.ToLower(excel.row.Cells[i].Value) {
+					excel.columns[name] = i
+					break
+				}
 			}
 		}
 	}
@@ -82,14 +86,14 @@ func OpenExcel(reader io.Reader, columns []string) (*Excel, error) {
 // IsDone returns true if no more rows
 func (e *Excel) IsDone() bool {
 	if nil != e.row {
-		var err error
 		e.i++
-		e.row, err = e.sheet.Row(e.i)
-		if l.Check(err) {
+		if e.i >= len(e.sheet.Rows) {
 			e.row = nil
+		} else {
+			e.row = e.sheet.Rows[e.i]
 		}
 	}
-	if nil == e.row || 0 == e.row.Sheet.MaxCol {
+	if nil == e.row || e.row.Sheet.MaxCol == 0 {
 		return true
 	}
 	return false
@@ -98,7 +102,7 @@ func (e *Excel) IsDone() bool {
 // getIndex returns index of column name or -1 if index is not valid
 func (e *Excel) getIndex(name string) int {
 	i, found := e.columns[name]
-	if false == found {
+	if !found {
 		return -1
 	}
 	if nil == e.row || i >= e.row.Sheet.MaxCol {
@@ -110,27 +114,27 @@ func (e *Excel) getIndex(name string) int {
 // String gets current row/column as string
 func (e *Excel) String(name string) string {
 	i := e.getIndex(name)
-	if -1 == i {
+	if -1 == i || i >= len(e.row.Cells) {
 		return ""
 	}
-	return e.row.GetCell(i).Value
+	return e.row.Cells[i].Value
 }
 
 // Int gets current row/column as string
 func (e *Excel) Int(name string) int {
 	i := e.getIndex(name)
-	if -1 == i {
+	if -1 == i || i >= len(e.row.Cells) {
 		return 0
 	}
-	return Atoi(e.row.GetCell(i).Value)
+	return Atoi(e.row.Cells[i].Value)
 }
 
 // Date gets current row column as date
 func (e *Excel) Date(name string) (time.Time, error) {
 	i := e.getIndex(name)
-	if -1 == i {
+	if -1 == i || i >= len(e.row.Cells) {
 		var t time.Time
 		return t, nil
 	}
-	return e.row.GetCell(i).GetTime(false)
+	return e.row.Cells[i].GetTime(false)
 }
